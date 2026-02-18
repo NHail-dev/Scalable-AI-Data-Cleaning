@@ -1,7 +1,8 @@
 # src/cleaners/base_cleaner.py
-
+import logging
 import pandas as pd
 
+logger = logging.getLogger(__name__)
 
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = (
@@ -14,10 +15,10 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def profile_dataframe(df: pd.DataFrame, label: str):
-    print(f"\n--- {label} PROFILE ---")
-    print(f"Rows: {len(df)}")
-    print(f"Columns: {len(df.columns)}")
-    print("\nMissing values per column:")
-    print(df.isna().sum())
-    print("\nData types:")
-    print(df.dtypes)
+    logger.info(f"\n--- {label} PROFILE ---")
+    logger.info(f"Rows: {len(df)}")
+    logger.info(f"Columns: {len(df.columns)}")
+    logger.info("\nMissing values per column:")
+    logger.info(df.isna().sum())
+    logger.info("\nData types:")
+    logger.info(df.dtypes)

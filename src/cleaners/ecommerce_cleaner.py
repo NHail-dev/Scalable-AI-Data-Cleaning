@@ -7,13 +7,19 @@ ML-ready dataset.
 
 Uses shared utilities from base_cleaner.py.
 """
+import logging
+import time
 from pathlib import Path
 import pandas as pd
+
+
 
 from src.cleaners.base_cleaner import (
     normalize_columns,
     profile_dataframe
 )
+
+logger = logging.getLogger(__name__)
 
 RAW_DATA_PATH = Path("data/raw/ecommerce_transactions.csv")
 PROCESSED_DATA_PATH = Path("data/processed/ecommerce_transactions_cleaned_base.csv")
@@ -21,16 +27,17 @@ PROCESSED_DATA_PATH = Path("data/processed/ecommerce_transactions_cleaned_base.c
 
 def clean_ecommerce_data(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Cleans the raw Ecommerce dataset.
+    Cleans the raw Ecommerce transactions dataset.
 
-    Steps:
-    - Normalizes column names to snake_case
-    - Parses transaction_date to datetime
-    - Validates age range and purchase_amount thresholds
-    - Removes rows with invalid age or non-positive purchase_amount
+    Transformations:
+    - Standardizes column names to snake_case
+    - Validates Age and Purchase Amount values
+    - Ensures Transaction_Date is properly formatted
+    - Applies data integrity checks for duplicates or missing entries
+    - Prepares dataset for downstream ML tasks
 
     Returns:
-        pd.DataFrame: Cleaned dataset ready for ML.
+        pd.DataFrame: Cleaned dataset ready for analysis or modeling.
     """
 
 
@@ -65,13 +72,13 @@ def clean_ecommerce_data(df: pd.DataFrame) -> pd.DataFrame:
     if "age" in df.columns:
         before = len(df)
         df = df[df["age"].between(10, 100)]
-        print(f"Removed {before - len(df)} rows due to invalid age")
+        logger.info(f"Removed {before - len(df)} rows due to invalid age")
 
     # Purchase amount validation
     if "purchase_amount" in df.columns:
         before = len(df)
         df = df[df["purchase_amount"] > 0]
-        print(f"Removed {before - len(df)} rows due to invalid purchase amount")
+        logger.info(f"Removed {before - len(df)} rows due to invalid purchase amount")
 
     return df
 
@@ -80,21 +87,55 @@ def clean_ecommerce_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main():
-    print("Loading ecommerce dataset...")
-    df = pd.read_csv(RAW_DATA_PATH)
-
-    profile_dataframe(df, "RAW DATA")
-
-    df_cleaned = clean_ecommerce_data(df)
-
-    profile_dataframe(df_cleaned, "CLEANED DATA")
-
-    PROCESSED_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    df_cleaned.to_csv(PROCESSED_DATA_PATH, index=False)
-
-    print(f"\nCleaned data saved to: {PROCESSED_DATA_PATH}")
-
+	
+	"""
+	Orchestrates the Ecommerce data cleaning pipeline.
+	
+	Pipeline stages:
+	- Load raw Ecommerce dataset
+	- Profile raw data for structure and integrity
+	- Apply domain-specific cleaning transformations
+	- Profile cleaned data to validate results
+	- Persist cleaned dataset to processed directory
+	- Log execution time and pipeline metadata
+	"""
+	# Start execution timer for pipeline performance measurement
+	start_time = time.time()
+	
+	logger.info("Loading ecommerce dataset...")
+	df = pd.read_csv(RAW_DATA_PATH)
+	
+	# Profile raw dataset before transformation
+	profile_dataframe(df, "RAW DATA")
+	
+	# Apply ecommerce-specific cleaning logic
+	df_cleaned = clean_ecommerce_data(df)
+	
+	# Profile dataset after cleaning to validate transformations
+	profile_dataframe(df_cleaned, "CLEANED DATA")
+	
+	# Ensure processed data directory exists
+	PROCESSED_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+	
+	# Persist cleaned dataset
+	df_cleaned.to_csv(PROCESSED_DATA_PATH, index=False)
+	
+	logger.info(f"Cleaned data saved to: {PROCESSED_DATA_PATH}")
+	
+	# Compute total pipeline execution time
+	end_time = time.time()
+	logger.info(f"Pipeline completed in {end_time - start_time:.2f} seconds")
 
 
 if __name__ == "__main__":
+	# Configure root logger for console output.
+	# Logging is initialized only at entry point to avoid overriding
+	# configuration when this module is imported elsewhere.
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+    )
     main()
+  
+  
+   
