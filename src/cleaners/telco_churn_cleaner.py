@@ -29,54 +29,58 @@ def clean_telco_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     Cleans the raw Telco churn dataset.
 
-	Transformations:
-	- Standardizes column names to lowercase
-	- Coerces `TotalCharges` to numeric and drops non-convertible rows
-	- Applies domain-based row filtering
-	- Encodes binary Yes/No features to numeric indicators
-	- Converts service-related categorical features to binary representations
-
-	Returns:
-    pd.DataFrame: Cleaned dataset ready for downstream modeling.
+    Transformations:
+    - Standardizes column names
+    - Cleans and coerces `totalcharges` to numeric
+    - Drops invalid rows
+    - Encodes Yes/No features to 0/1
+    - Normalizes service-related categorical features
+    - Converts SeniorCitizen to boolean
     """
+
     df = normalize_columns(df)
 
-    # Convert empty strings to NaN
-    df = df.replace(r"^\s*$", np.nan, regex=True)
-
-    # Fix TotalCharges numeric casting
+    # --- Clean and cast TotalCharges only (avoid full DF regex scan) ---
     if "totalcharges" in df.columns:
+        df["totalcharges"] = (
+            df["totalcharges"]
+            .replace(r"^\s*$", np.nan, regex=True)
+        )
         df["totalcharges"] = pd.to_numeric(df["totalcharges"], errors="coerce")
 
-    # Drop rows with invalid totalcharges
-    before = len(df)
-    df = df.dropna(subset=["totalcharges"])
-    logger.info(f"Removed {before - len(df)} rows due to invalid totalcharges")
+        before = len(df)
+        df = df.dropna(subset=["totalcharges"]).copy()
+        logger.info(f"Removed {before - len(df)} rows due to invalid totalcharges")
 
-    # Yes/No columns to 0/1
+    # --- Yes/No binary encoding ---
     yes_no_columns = [
         "partner", "dependents", "phoneservice",
         "paperlessbilling", "churn"
     ]
+
     for col in yes_no_columns:
         if col in df.columns:
-            df[col] = df[col].map({"Yes": 1, "No": 0})
+            df[col] = df[col].map({"Yes": 1, "No": 0}).astype("UInt8")
 
-    # Service columns with "No internet/phone service" normalization
+    # --- Normalize service-related columns ---
     service_columns = [
         "multiplelines", "onlinesecurity", "onlinebackup",
         "deviceprotection", "techsupport",
         "streamingtv", "streamingmovies"
     ]
+
     for col in service_columns:
         if col in df.columns:
-            df[col] = df[col].replace({
-                "No internet service": "No",
-                "No phone service": "No"
-            })
-            df[col] = df[col].map({"Yes": 1, "No": 0})
+            df[col] = (
+                df[col]
+                .replace({
+                    "No internet service": "No",
+                    "No phone service": "No"
+                })
+                .map({"Yes": 1, "No": 0}).astype("UInt8")
+            )
 
-    # SeniorCitizen to boolean
+    # --- SeniorCitizen to boolean ---
     if "seniorcitizen" in df.columns:
         df["seniorcitizen"] = df["seniorcitizen"].astype(bool)
 

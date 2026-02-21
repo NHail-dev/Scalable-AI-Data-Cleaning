@@ -68,17 +68,21 @@ def clean_ecommerce_data(df: pd.DataFrame) -> pd.DataFrame:
             errors="coerce"
         )
 
-    # Age sanity validation
-    if "age" in df.columns:
-        before = len(df)
-        df = df[df["age"].between(10, 100)]
-        logger.info(f"Removed {before - len(df)} rows due to invalid age")
+    # Age sanity validation & Purchase amount validation
+    
+    initial_len = len(df)
 
-    # Purchase amount validation
+    mask = pd.Series(True, index=df.index)
+
+    if "age" in df.columns:
+    	mask &= df["age"].between(10, 100)
+
     if "purchase_amount" in df.columns:
-        before = len(df)
-        df = df[df["purchase_amount"] > 0]
-        logger.info(f"Removed {before - len(df)} rows due to invalid purchase amount")
+    	mask &= df["purchase_amount"] > 0
+
+    df = df[mask]
+
+    logger.info(f"Removed {initial_len - len(df)} rows due to domain validation rules")
 
     return df
 
@@ -100,13 +104,13 @@ def main():
 	- Log execution time and pipeline metadata
 	"""
 	# Start execution timer for pipeline performance measurement
-	start_time = time.time()
+	start_time = time.perf_counter()
 	
 	logger.info("Loading ecommerce dataset...")
 	df = pd.read_csv(RAW_DATA_PATH)
 	
 	# Profile raw dataset before transformation
-	profile_dataframe(df, "RAW DATA")
+	profile_dataframe(df, "RAW DATA", enabled=False)
 	
 	# Apply ecommerce-specific cleaning logic
 	df_cleaned = clean_ecommerce_data(df)
@@ -123,7 +127,7 @@ def main():
 	logger.info(f"Cleaned data saved to: {PROCESSED_DATA_PATH}")
 	
 	# Compute total pipeline execution time
-	end_time = time.time()
+	end_time = time.perf_counter()
 	logger.info(f"Pipeline completed in {end_time - start_time:.2f} seconds")
 
 

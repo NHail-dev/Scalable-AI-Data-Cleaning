@@ -9,12 +9,15 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
         df.columns
         .str.strip()
         .str.lower()
-        .str.replace(" ", "_")
+        .str.replace(" ", "_", regex=False)
     )
     return df
 
 
-def profile_dataframe(df: pd.DataFrame, label: str):
+def profile_dataframe(df: pd.DataFrame, label: str, enabled: bool = True):
+    if not enabled or not logger.isEnabledFor(logging.INFO):
+        return
+        
     logger.info(f"\n--- {label} PROFILE ---")
     logger.info(f"Rows: {len(df)}")
     logger.info(f"Columns: {len(df.columns)}")
