@@ -120,7 +120,7 @@ Binary columns cast to `uint8` to reduce memory footprint.
 Clone the repository:
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/NHail-dev/Scalable-AI-Data-Cleaning
 cd Scalable-AI-Data-Cleaning
 ```
 
